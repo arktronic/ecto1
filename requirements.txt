@@ -1,0 +1,4 @@
+beautifulsoup4==4.9.1
+soupsieve==2.0.1
+tinycss2==1.0.2
+webencodings==0.5.1

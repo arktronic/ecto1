@@ -18,8 +18,8 @@ ECTO1_SOURCE=http://internal-url.example.net ECTO1_TARGET=https://public-url.exa
 If the Ghost site is in private mode, specify the password and the private RSS link:
 ECTO1_PRIVATE_PASSWORD=abcd1234 ECTO1_PRIVATE_RSS_URL=http://internal-url.example.net/acbacbacbacbabcbabcbacabb/rss ...
 
-If the Ghost site is behind a basic auth reverse proxy, specify the username and/or password:
-ECTO1_BASIC_AUTH_USERNAME=user ECTO1_BASIC_AUTH_PASSWORD=pass ...
+If the Ghost site is behind a pre-authentication gateway, specify its POST URL and Base64-encoded POST data:
+ECTO1_PRE_AUTH_URL=http://authentication.example.net/login ECTO1_PRE_AUTH_POST_DATA="dXNlcm5hbWU9aGVsbG8mcGFzc3dvcmQ9d29ybGQ=" ...
 
 IMPORTANT: It is assumed that you own the rights to the Ghost site being downloaded. No throttling is implemented.
 ```

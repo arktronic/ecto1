@@ -34,14 +34,16 @@ class Downloader:
 		self.target_path_root = pathlib.Path(os.getcwd()) / 'public'
 		self.private_site_password = None
 		self.rss_override_url = None
-		self.auth_header_value = None
+		self.preauth_url = None
+		self.preauth_base64_data = None
 
 	def set_private_mode(self, password, rss_override_url):
 		self.private_site_password = password
 		self.rss_override_url = rss_override_url if rss_override_url.endswith('/') else rss_override_url + '/'
 
-	def set_basic_auth(self, username, password):
-		self.auth_header_value = b'Basic ' + base64.b64encode((username + ':' + password).encode('utf-8'))
+	def set_preauth(self, url, base64_data):
+		self.preauth_url = url
+		self.preauth_base64_data = base64_data
 
 	def is_html(self, content_type, normalized_url):
 		return content_type == 'text/html' or normalized_url.endswith('.html') or normalized_url.endswith('.htm') or normalized_url.endswith('/')
@@ -79,8 +81,6 @@ class Downloader:
 			url = self.rss_override_url
 			print('Overriding RSS URL:', url)
 		request = urllib.request.Request(url)
-		if self.auth_header_value != None:
-			request.add_header('Authorization', self.auth_header_value)
 		with urllib.request.urlopen(url) as response:
 			return response.info().get_content_type(), response.read()
 
@@ -189,14 +189,17 @@ class Downloader:
 				self.retrieve_all(link)
 
 	def go(self):
+		if self.preauth_url != None:
+			request = urllib.request.Request(preauth_url, base64.b64decode(self.preauth_base64_data))
+			opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookiejar), PassthroughHTTPErrorProcessor)
+			with opener.open(request) as response:
+				print('Pre-auth status: ', response.status)
 		if self.private_site_password != None:
 			payload = {
 				'r': '/',
 				'password': self.private_site_password
 			}
 			request = urllib.request.Request(self.source_url_root + 'private/', urllib.parse.urlencode(payload).encode('utf-8'))
-			if self.auth_header_value != None:
-				request.add_header('Authorization', self.auth_header_value)
 			opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookiejar), PassthroughHTTPErrorProcessor)
 			with opener.open(request) as response:
 				if response.status != 302:
@@ -211,8 +214,8 @@ source_url = os.getenv('ECTO1_SOURCE')
 target_url = os.getenv('ECTO1_TARGET')
 private_password = os.getenv('ECTO1_PRIVATE_PASSWORD')
 private_rss_url = os.getenv('ECTO1_PRIVATE_RSS_URL')
-basic_auth_username = os.getenv('ECTO1_BASIC_AUTH_USERNAME', '')
-basic_auth_password = os.getenv('ECTO1_BASIC_AUTH_PASSWORD', '')
+preauth_url = os.getenv('ECTO1_PRE_AUTH_URL')
+preauth_data = os.getenv('ECTO1_PRE_AUTH_POST_DATA')
 
 if source_url == None or target_url == None:
 	print('ecto1.py: the Ghost blog downloader/scraper/static-site-maker')
@@ -224,8 +227,8 @@ if source_url == None or target_url == None:
 	print('If the Ghost site is in private mode, specify the password and the private RSS link:')
 	print('ECTO1_PRIVATE_PASSWORD=abcd1234 ECTO1_PRIVATE_RSS_URL=http://internal-url.example.net/acbacbacbacbabcbabcbacabb/rss ...')
 	print('')
-	print('If the Ghost site is behind a basic auth reverse proxy, specify the username and/or password:')
-	print('ECTO1_BASIC_AUTH_USERNAME=user ECTO1_BASIC_AUTH_PASSWORD=pass ...')
+	print('If the Ghost site is behind a pre-authentication gateway, specify its POST URL and Base64-encoded POST data:')
+	print('ECTO1_PRE_AUTH_URL=http://authentication.example.net/login ECTO1_PRE_AUTH_POST_DATA="dXNlcm5hbWU9aGVsbG8mcGFzc3dvcmQ9d29ybGQ=" ...')
 	print('')
 	print('IMPORTANT: It is assumed that you own the rights to the Ghost site being downloaded. No throttling is implemented.')
 	sys.exit(1)
@@ -239,11 +242,11 @@ if private_password != None and private_rss_url != None:
 else:
 	print('Private mode: OFF')
 
-if basic_auth_username != '' or basic_auth_password != '':
-	d.set_basic_auth(basic_auth_username, basic_auth_password)
-	print('Basic auth: ON')
+if preauth_url != None and preauth_data != None:
+	d.set_preauth(preauth_url, preauth_data)
+	print('Pre-auth: ON')
 else:
-	print('Basic auth: OFF')
+	print('Pre-auth: OFF')
 
 d.go()
 

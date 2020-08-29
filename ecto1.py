@@ -29,7 +29,7 @@ class Downloader:
 		opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookiejar))
 		urllib.request.install_opener(opener)
 
-		self.rss_re_pattern = re.compile(re.escape(self.source_url_root) + 'rss(/)?[\'"\\)]{1}')
+		self.rss_re_pattern = re.compile(re.escape(self.source_url_root) + 'rss/?([\'"\\)]{1})')
 		self.downloaded_urls = []
 		self.target_path_root = pathlib.Path(os.getcwd()) / 'public'
 		self.private_site_password = None
@@ -88,7 +88,7 @@ class Downloader:
 		doc = data.decode()
 		if self.rss_override_url != None:
 			doc = doc.replace(self.rss_override_url, self.source_url_root + 'rss/')
-		doc = self.rss_re_pattern.sub(self.source_url_root + 'rss.xml', doc)
+		doc = self.rss_re_pattern.sub(self.source_url_root + 'rss.xml\\g<1>', doc)
 		doc = doc.replace(self.source_url_root, self.target_url_root)
 		alt_source = self.source_url_root.rstrip('/')
 		alt_target = self.target_url_root.rstrip('/')
